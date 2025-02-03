@@ -1,0 +1,60 @@
+\documentclass[11pt]{article}
+\usepackage[slovak]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{enumitem}
+\usepackage{multicol}
+\usepackage{watermark}
+\usepackage{framed}
+\usepackage{shuffle}
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset { %
+    language=C++,
+    backgroundcolor=\color{black!5}, % set backgroundcolor
+    basicstyle=\footnotesize,% basic font setting
+}
+
+\geometry{
+  a4paper,
+  top=25mm,
+  bottom=18mm,
+  right=21mm,
+  left=22mm
+}
+
+\newcommand{\eps}{\varepsilon}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{8pt}
+\setlist{topsep=0pt}
+
+\begin{document}
+\begin{center}
+{\Large\textbf{Report zo zimného semestra}}
+\end{center}
+\thispageheading{\vspace{-42pt}\begin{flushright}\begin{tabular}{l} Matúš Duchyňa \\ \today \end{tabular}\end{flushright}}
+
+Naprogramoval som naivný backtracking algoritmus na zistenie, či má daný graf $G$ acyklické \textit{vrcholové} regulárne farbenie s $k$ farbami (či platí $a(g) \leq k$) ako súčasť knižnice ba-graphs. Algoritmus postupne generuje všetky regulárne farbenia a skontroluje, či sú acyklické. Kontrola acykliskosti skontroluje každú dvojicu farieb, či neexistuje cyklus obsahujúci vrcholy iba s týmito farbami.
+
+Ak farbenie existuje pre $k$-regulárny graf $G = (V, E)$, algoritmus ho zvládne nájsť do pár sekúnd, pokiaľ $|V| + k \approx 18$ (okrem zopár vínimok, kde sa čas zvýši na pár minút). V prípade, že farbenie neexistuje pre $k$-regulárny graf $G = (V, E)$, algoritmus to zistí do pár sekúnd, pokiaľ $|V| + k \approx 13$.
+
+Otestoval som, že pre stromy platí $a(G) = 2$ a že pre grafy $G$ s maximálnym stupňom vrchola $\Delta (G)$ platí: \\
+1. $\Delta(G) = 3 \Rightarrow a(G) \leq 4$, \\
+2. $\Delta(G) = 4 \Rightarrow a(G) \leq 5$, \\
+3. $\Delta(G) = 5 \Rightarrow a(G) \leq 7$, \\
+4. $\Delta(G) = 6 \Rightarrow a(G) \leq 12$.
+
+Na nájdenie acyklického \textit{hranového} regulárneho farbenia grafu $G = (V, E)$ stačí skonštruovať line graf $L(G)$ a nájsť acyklické \textit{vrcholové} regulárne farbenie grafu $L(G)$.
+
+Otestoval som Fiamčíkovu hypotézu, tj. pre $k$-regulárne grafy $G$ platí $a(G) \leq k+2$, a ak $k=3$ a zároveň $G$ nie je $K_4$ ani $K_{3, 3}$, tak $a(G) \leq 4$.
+
+
+V letnom semestry spravím algoritmus založený na SAT solveri.
+\end{document}

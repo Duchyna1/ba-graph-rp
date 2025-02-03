@@ -1,0 +1,8 @@
+graph,#vertices,#edges,acyclic edge chromatic index,duration
+D~{,5,10,6,0
+E}lw,6,12,6,0
+F}hXw,7,14,6,5
+F}oxw,7,14,6,4
+G}hHg{,8,16,6,241
+G}hPW{,8,16,6,250
+end
