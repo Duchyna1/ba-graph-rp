@@ -1,2 +1,5 @@
 graph,#vertices,#edges,acyclic edge chromatic index,duration
-G~~~~{,8,28,
+D~{,5,10,6,1
+E}lw,6,12,6,18
+F}hXw,7,14,6,206
+end

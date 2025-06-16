@@ -1,0 +1,115 @@
+\documentclass[11pt]{article}
+\usepackage[slovak]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{enumitem}
+\usepackage{multicol}
+\usepackage{watermark}
+\usepackage{framed}
+\usepackage{shuffle}
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset { %
+    language=C++,
+    backgroundcolor=\color{black!5}, % set backgroundcolor
+    basicstyle=\footnotesize,% basic font setting
+}
+
+\geometry{
+  a4paper,
+  top=25mm,
+  bottom=18mm,
+  right=21mm,
+  left=22mm
+}
+
+\newcommand{\eps}{\varepsilon}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{8pt}
+\setlist{topsep=0pt}
+
+\begin{document}
+\begin{center}
+{\Large\textbf{Report z letného semestra}}
+\end{center}
+\thispageheading{\vspace{-42pt}\begin{flushright}\begin{tabular}{l} Matúš Duchyňa \\ \today \end{tabular}\end{flushright}}
+
+V letnom semestri som zisťoval, či má graf $G$ acyklické vrcholové regulárne farbenie s $k$ farbami, (či platí $a(G) \leq k$) pomocov SAT solveru.
+
+Najťažsia vec je zakódovať problém do CNF formúl. Rozdelíme si ho preto na nikoľko častí a každú vyriešime samostane:
+
+Poznámka: Symbol $[n]$ v tomto texte označuje množinu všetkých čísel od $1$ po $n$, teda $[n] = \{1, 2, \ldots, n\}$.
+
+\begin{enumerate}
+    \item \textit{Literály:}\\
+    Ako prvé očíslujeme vrcholy grafu $G$ číslami $1, 2, \ldots, n$ a farby $1, 2, \ldots, k$. Literál $c_{i, j}$, $i, j \in \mathbb{N}, i \leq n, j \leq k$ bude pravdivý vtedy, ak vrchol $i$ má farbu $j$.
+
+    \item \textit{Každý vrchol má aspoň jednu farbu:}\\
+    Pre každý vrchol $i$ musíme pridať klauzulu, ktorá zabezpečí, že aspoň jeden literál $c_{i, j}$ bude pravdivý:
+    $$\bigvee_{j = 1}^{k} c_{i, j} \qquad i \in [ n ]$$
+
+    \item \textit{Každý vrchol má najviac jednu farbu:}\\
+    Pre každý vrchol $i$ musíme pridať klauzulu, ktorá zabezpečí, že najviac jeden literál $c_{i, j}$ bude pravdivý. To znamená, že $\forall i \in [n]$ a pre všetky $j_1, j_2 \in [k]$ s $j_1 < j_2$ musí platiť $\neg ( c_{i, j_1} \land c_{i, j_2})$. Po prevedení do CNF formy dostaneme:
+
+    $$\neg c_{i, j_1} \vee \neg c_{i, j_2} \qquad i \in [ n ], \, j_1, j_2 \in [k], \, j_1 < j_2$$
+
+    \item \textit{Regulárnosť farbenia:}\\
+    Pre každú dvojicu incidentných vrcholov $i_1, i_2$ musíme pridať klauzulu, ktorá zabezpečí, že aspoň jeden z vrcholov $i_1$ a $i_2$ nemá farbu $j$ pre každú farbu $j$. To znamená, že $\forall i_1, i_2 \in [n]$ také, že $(i_1, i_2) \in E(G)$ a $\forall j \in [k]$ platí $\neg (c_{i_1, j} \land c_{i_2, j})$. V CNF forme to bude:
+
+    $$\neg c_{i_1, j} \vee \neg c_{i_2, j} \qquad (i_1, i_2) \in E(G), \, j \in [k]$$
+
+    \item \textit{Acyklickosť:}\\
+    Zostrojíme množinu $C = \{c \in 2^{[n]} \, | \, c \text{ je množina vrcholov ktoré tvoria cyklus v grafe $G$}\}$. Potom pre každý cyklus $c \in C$ musíme pridať klauzulu, ktorá zabezpečí, že aspoň jeden vrchol z $c$ nemá farbu $j_1, j_2$ pre každú dvojicu farieb $j_1, j_2 \in [k]$. To znamená, že $\forall c \in C$, $\forall i \in c$ a pre všetky $j_1, j_2 \in [k]$ s $j_1 < j_2$ platí $\neg c_{i, j_1} \land \neg c_{i, j_2}$. Z praktického hľadiska zavedieme nový literál $d_{i, j_1, j_2}$, pre ktorý bude platiť $d_{i, j_1, j_2} \Leftrightarrow \left(\neg c_{i, j_1} \land \neg c_{i, j_2}\right)$. Prevedením do CNF formy dostaneme:
+
+    $$\bigvee_{i\in c} d_{i, j_1, j_2} \qquad c\in C, j_1, j_2 \in [k], j_1 < j_2$$
+
+    \begin{enumerate}
+        \item \textit{Platnosť $d_{i, j_1, j_2} \Leftrightarrow \left(\neg c_{i, j_1} \land \neg c_{i, j_2}\right)$:}\\
+        Upravíme $d_{i, j_1, j_2} \Leftrightarrow \left(\neg c_{i, j_1} \land \neg c_{i, j_2}\right)$ do CNF formy.
+
+        $$d_{i, j_1, j_2} \Leftrightarrow \left(\neg c_{i, j_1} \land \neg c_{i, j_2}\right)$$
+        $$\left(d_{i, j_1, j_2} \Rightarrow \left(\neg c_{i, j_1} \land \neg c_{i, j_2}\right) \right) \land \left(\left(\neg c_{i, j_1} \land \neg c_{i, j_2}\right) \Rightarrow d_{i, j_1, j_2}\right)$$
+        $$\left(\neg d_{i, j_1, j_2} \lor \left(\neg c_{i, j_1} \land \neg c_{i, j_2}\right) \right) \land \left(\neg \left(\neg c_{i, j_1} \land \neg c_{i, j_2}\right) \lor d_{i, j_1, j_2}\right)$$
+        $$\left( \neg d_{i, j_1, j_2} \lor \neg c_{i, j_1}\right) \land
+        \left( \neg d_{i, j_1, j_2} \lor \neg c_{i, j_2}\right) \land
+        \left(  c_{i, j_1} \lor c_{i, j_2} \lor d_{i, j_1, j_2}\right)$$
+    \end{enumerate}
+
+\end{enumerate}
+
+To sú všetky klauzuly, ktoré potrebujeme pridať do CNF formy. Teraz už len stačí vytvoriť SAT solver, ktorý bude vedieť spracovať tieto klauzuly a zistiť, či existuje acyklické vrcholové regulárne farbenie s $k$ farbami.
+
+Počet literálov "typu $c$", ktoré potrebujeme pre $n$ vrcholov a $k$ farieb je $n \cdot k$. Predpokladajme, že každý vrchol je v cykle. Potom budeme ešte potrebovať $n\frac{k(k-1)}{2}$ literálov "typu $d$". \textit{Celkový počet literálov je teda $n \cdot k + n\frac{k(k-1)}{2} = n \cdot \frac{k(k+1)}{2}$.}
+
+Počet klauzúl jednotlivých typov $P$ a ich celková dĺžka $D$ sú nasledovné:
+\begin{enumerate}
+    \setcounter{enumi}{1}
+    \item Každý vrchol má aspoň jednu farbu:\\
+    $P_2 = n$, $D_2 = n \cdot k$
+
+    \item Každý vrchol má najviac jednu farbu:\\
+    $P_3 = n \cdot \frac{k(k-1)}{2}$, $D_3 = n \cdot k(k-1)$
+
+    \item Regulárnosť farbenia:\\
+    $P_4 = |E(G)| \cdot k$, $D_4 = 2|E(G)| \cdot k$
+
+    \item Acyklickosť:\\
+    $P_5 = |C| \cdot \frac{k(k-1)}{2}$, $D_5 = |C| \cdot \frac{k(k-1)}{2} \cdot \sum_{c\in C} |c|$
+
+    \begin{enumerate}
+        \item Platnosť $d_{i, j_1, j_2} \Leftrightarrow \left(\neg c_{i, j_1} \land \neg c_{i, j_2}\right)$:\\
+        $P_{5.a} = 3n \cdot\frac{k(k-1)}{2}$, $D_{5.a} = 21n\cdot \frac{k(k-1)}{2}$
+    \end{enumerate}
+
+\end{enumerate}
+
+Čo sa týka efektívnosti, tak pri použití \verb|CMSatSolver| je kód približne o 20\% rýchlejší oproti brute-force metóde. Pri väčších grafoch s viac cyklami začína byť problém s pamäťou.
+
+\end{document}

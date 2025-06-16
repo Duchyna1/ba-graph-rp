@@ -7,7 +7,7 @@
 
 #include "cnf.hpp"
 #include "solver.hpp"
-
+#include "solver_cmsat.hpp"
 
 namespace ba_graph
 {

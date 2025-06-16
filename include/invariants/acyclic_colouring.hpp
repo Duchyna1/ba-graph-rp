@@ -1,8 +1,15 @@
 #include <iostream>
 #include <set>
+#include <sat/solver.hpp>
+#include <sat/cnf.hpp>
+#include <sat/exec_solver.hpp>
+#include <map>
+#include <algorithms/paths.hpp>
+#include <impl/basic/graph.h>
 
 namespace ba_graph
 {
+    std::map<std::string, int> string_to_int;
     namespace internal
     {
         bool detect_cycle(const Graph &G, std::set<int> &allowed_colours, std::map<Number, int> &colouring, Number current, std::vector<Number> &parent)
@@ -110,6 +117,19 @@ namespace ba_graph
             colouring[v] = -1;
             return false;
         }
+
+        int c(int vertex, int color)
+        {
+            return string_to_int["c_" + std::to_string(vertex) + "_" + std::to_string(color)];
+        }
+
+        int d(int vertex, int c1, int c2)
+        {
+            if (c1 > c2)
+                std::swap(c1, c2);
+
+            return string_to_int["d_" + std::to_string(vertex) + "_" + std::to_string(c1) + "_" + std::to_string(c2)];
+        }
     }
 
     bool has_acyclic_colouring(const Graph &G, int k)
@@ -122,5 +142,128 @@ namespace ba_graph
             return false;
 
         return true;
+    }
+
+    bool has_acyclic_colouring_SAT(const SatSolver &solver, const Graph &G, int k)
+    {
+        CNF cnf;
+
+        int lit_count = 0;
+
+        // Preparing literals
+        for (int i = 0; i < G.order(); i++)
+        {
+            for (int j = 0; j < k; j++)
+            {
+                string_to_int["c_" + std::to_string(i) + "_" + std::to_string(j)] = lit_count++;
+            }
+        }
+
+        for (int i = 0; i < G.order(); i++)
+        {
+            for (int j1 = 0; j1 < k; j1++)
+            {
+                for (int j2 = j1 + 1; j2 < k; j2++)
+                {
+                    string_to_int["d_" + std::to_string(i) + "_" + std::to_string(j1) + "_" + std::to_string(j2)] = lit_count++;
+                }
+            }
+        }
+
+        cnf.first = lit_count;
+
+        // At least one color per vertex
+        for (int i = 0; i < G.order(); i++)
+        {
+            Clause clause;
+
+            for (int j = 0; j < k; j++)
+            {
+                clause.push_back(Lit(internal::c(i, j), false));
+            }
+
+            cnf.second.push_back(clause);
+        }
+
+        // Max one coulor per vertex
+        for (int i = 0; i < G.order(); i++)
+        {
+            for (int j1 = 0; j1 < k; j1++)
+            {
+                for (int j2 = j1 + 1; j2 < k; j2++)
+                {
+                    Clause clause;
+                    clause.push_back(Lit(internal::c(i, j1), true));
+                    clause.push_back(Lit(internal::c(i, j2), true));
+
+                    cnf.second.push_back(clause);
+                }
+            }
+        }
+
+        // Regular coloring
+        for (auto edge : G.list(RP::all(), IP::primary(), IT::e()))
+        {
+            int i1 = edge.v1().to_int();
+            int i2 = edge.v2().to_int();
+
+            for (int j = 0; j < k; j++)
+            {
+                Clause clause;
+                clause.push_back(Lit(internal::c(i1, j), true));
+                clause.push_back(Lit(internal::c(i2, j), true));
+                cnf.second.push_back(clause);
+            }
+        }
+
+        // Acyclic coloring
+        // d <=> (not c1 and not c2)
+        for (int i = 0; i < G.order(); i++)
+        {
+            for (int j1 = 0; j1 < k; j1++)
+            {
+                for (int j2 = j1 + 1; j2 < k; j2++)
+                {
+                    Clause clause1;
+                    clause1.push_back(Lit(internal::d(i, j1, j2), true));
+                    clause1.push_back(Lit(internal::c(i, j1), true));
+                    cnf.second.push_back(clause1);
+
+                    Clause clause2;
+                    clause2.push_back(Lit(internal::d(i, j1, j2), true));
+                    clause2.push_back(Lit(internal::c(i, j2), true));
+                    cnf.second.push_back(clause2);
+
+                    Clause clause3;
+                    clause3.push_back(Lit(internal::d(i, j1, j2), false));
+                    clause3.push_back(Lit(internal::c(i, j1), false));
+                    clause3.push_back(Lit(internal::c(i, j2), false));
+                    cnf.second.push_back(clause3);
+                }
+            }
+        }
+
+        std::set<Circuit> circuits = all_circuits(G);
+        for (const auto &circuit : circuits)
+        {
+            std::vector<Number> vertices = circuit.vertices();
+            int n = vertices.size();
+
+            for (int j1 = 0; j1 < k; j1++)
+            {
+                for (int j2 = j1 + 1; j2 < k; j2++)
+                {
+                    Clause clause;
+                    for (int i = 0; i < n; i++)
+                    {
+                        int vertex = vertices[i].to_int();
+                        clause.push_back(Lit(internal::d(vertex, j1, j2), false));
+                    }
+                    cnf.second.push_back(clause);
+                }
+            }
+        }
+
+        return satisfiable(solver, cnf);
     }
 }
